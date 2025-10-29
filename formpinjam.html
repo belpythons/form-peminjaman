@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator Surat Peminjaman & Reservasi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .form-section {
+            display: none;
+        }
+        .form-section.active {
+            display: block;
+        }
+        .tab-button.active {
+            background-color: #4f46e5; /* indigo-600 */
+            color: white;
+        }
+        .preview-document {
+            font-family: 'Times New Roman', Times, serif;
+            line-height: 1.8;
+        }
+        .peminjam-fields {
+            display: none;
+        }
+        .peminjam-fields.active {
+            display: block;
+        }
+        /* Styling untuk mode cetak */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #preview-container, #preview-container * {
+                visibility: visible;
+            }
+            #preview-container {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 2cm;
+                font-size: 12pt;
+                line-height: 1.3;
+            }
+            #preview-container table {
+                margin: 0.5em 0;
+            }
+            #preview-container p {
+                margin: 0.3em 0;
+            }
+            #preview-signature-section {
+                margin-top: 1em !important;
+            }
+            .preview-document {
+                max-width: 21cm;
+                margin: 0 auto;
+            }
+            @page {
+                size: A4;
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Generator Surat Peminjaman</h1>
+            <p class="text-gray-600 mt-2">Isi formulir di bawah untuk membuat surat peminjaman alat atau reservasi ruangan secara otomatis.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Kolom Formulir -->
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <div class="flex border-b border-gray-200 mb-6">
+                    <button id="tab-alat" class="tab-button flex-1 py-3 px-4 text-center font-semibold text-gray-600 hover:bg-gray-100 rounded-t-lg transition-colors duration-200">
+                        Peminjaman Alat & Ruangan
+                    </button>
+                    <button id="tab-ruangan" class="tab-button flex-1 py-3 px-4 text-center font-semibold text-gray-600 hover:bg-gray-100 rounded-t-lg transition-colors duration-200">
+                        Reservasi Ruangan
+                    </button>
+                </div>
+
+                <!-- Form Peminjaman Alat & Ruangan -->
+                <div id="form-alat" class="form-section space-y-6">
+                    <!-- Data Surat -->
+                    <div class="space-y-4 border-b pb-6">
+                        <h3 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Data Surat</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="kotaSurat" class="block text-sm font-medium text-gray-700 mb-1">Kota Surat</label>
+                                <input type="text" id="kotaSurat" value="Bontang" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="tanggalSurat" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Surat</label>
+                                <input type="date" id="tanggalSurat" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="nomorSurat" class="block text-sm font-medium text-gray-700 mb-1">Nomor Surat</label>
+                            <input type="text" id="nomorSurat" placeholder="Contoh: 001/Int/PIK-M/VI/2024" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label for="penerimaJabatan" class="block text-sm font-medium text-gray-700 mb-1">Jabatan Penerima</label>
+                            <input type="text" id="penerimaJabatan" value="Ketua STITEK Bontang" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                         <div>
+                            <label for="penerimaNama" class="block text-sm font-medium text-gray-700 mb-1">Nama Penerima</label>
+                            <input type="text" id="penerimaNama" value="Bapak Hardianto, S.T., M. Eng" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                    </div>
+                    
+                    <!-- Data Peminjam -->
+                    <div class="space-y-4 border-b pb-6">
+                        <h3 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Data Peminjam</h3>
+                        <div>
+                            <label for="statusPeminjam" class="block text-sm font-medium text-gray-700 mb-1">Status Peminjam</label>
+                            <select id="statusPeminjam" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="ormawa" selected>Ormawa / Himpunan</option>
+                                <option value="mahasiswa">Mahasiswa</option>
+                                <option value="dosen">Dosen</option>
+                                <option value="staff">Staff</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Fields for Ormawa -->
+                    <div id="peminjam-ormawa-fields" class="peminjam-fields active space-y-6">
+                        <div class="space-y-4 border-b pb-6">
+                            <h3 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Data Kegiatan</h3>
+                            <div>
+                                <label for="tujuanAcara" class="block text-sm font-medium text-gray-700 mb-1">Tujuan / Dalam Rangka Acara</label>
+                                <input type="text" id="tujuanAcara" value="Pelaksanaan Program Kerja" placeholder="Contoh: Pelaksanaan Program Kerja" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="namaOrganisasi" class="block text-sm font-medium text-gray-700 mb-1">Nama Organisasi</label>
+                                <input type="text" id="namaOrganisasi" placeholder="Contoh: Pusat Informasi dan Konseling Mahasiswa STITEK Bontang" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="namaKegiatan" class="block text-sm font-medium text-gray-700 mb-1">Nama Kegiatan</label>
+                                <input type="text" id="namaKegiatan" placeholder="Contoh: Pelatihan Public Speaking" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <h3 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Penanggung Jawab</h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="ketuaPanitiaNama" class="block text-sm font-medium text-gray-700 mb-1">Nama Ketua Panitia</label>
+                                    <input type="text" id="ketuaPanitiaNama" placeholder="Nama Lengkap" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                 <div>
+                                    <label for="ketuaPanitiaNim" class="block text-sm font-medium text-gray-700 mb-1">NIM Ketua</label>
+                                    <input type="text" id="ketuaPanitiaNim" placeholder="NIM" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="sekretarisNama" class="block text-sm font-medium text-gray-700 mb-1">Nama Sekretaris</label>
+                                    <input type="text" id="sekretarisNama" placeholder="Nama Lengkap" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                 <div>
+                                    <label for="sekretarisNim" class="block text-sm font-medium text-gray-700 mb-1">NIM Sekretaris</label>
+                                    <input type="text" id="sekretarisNim" placeholder="NIM" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fields for Mahasiswa -->
+                    <div id="peminjam-mahasiswa-fields" class="peminjam-fields space-y-4">
+                         <h3 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Detail Peminjam & Keperluan</h3>
+                        <div>
+                            <label for="mahasiswaNama" class="block text-sm font-medium text-gray-700 mb-1">Nama Mahasiswa</label>
+                            <input type="text" id="mahasiswaNama" placeholder="Nama Lengkap" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label for="mahasiswaNim" class="block text-sm font-medium text-gray-700 mb-1">NIM</label>
+                            <input type="text" id="mahasiswaNim" placeholder="NIM" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label for="mahasiswaKeperluan" class="block text-sm font-medium text-gray-700 mb-1">Keperluan</label>
+                            <textarea id="mahasiswaKeperluan" rows="3" placeholder="Contoh: Pengerjaan tugas akhir" class="w-full p-2 border border-gray-300 rounded-md shadow-sm"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Fields for Dosen/Staff -->
+                    <div id="peminjam-dosen-staff-fields" class="peminjam-fields space-y-4">
+                         <h3 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Detail Peminjam & Keperluan</h3>
+                         <div>
+                            <label for="dosenStaffNama" class="block text-sm font-medium text-gray-700 mb-1">Nama Dosen / Staff</label>
+                            <input type="text" id="dosenStaffNama" placeholder="Nama Lengkap" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label for="dosenStaffNik" class="block text-sm font-medium text-gray-700 mb-1">NIP / NIK</label>
+                            <input type="text" id="dosenStaffNik" placeholder="NIP / NIK" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        </div>
+                         <div>
+                            <label for="dosenStaffKeperluan" class="block text-sm font-medium text-gray-700 mb-1">Keperluan</label>
+                            <textarea id="dosenStaffKeperluan" rows="3" placeholder="Contoh: Kegiatan belajar mengajar" class="w-full p-2 border border-gray-300 rounded-md shadow-sm"></textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- Detail Waktu & Tempat, berlaku untuk semua status -->
+                    <div class="space-y-4 border-t pt-6">
+                         <h3 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Waktu & Tempat Pelaksanaan</h3>
+                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="tanggalKegiatan" class="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
+                                <input type="date" id="tanggalKegiatan" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="waktuKegiatan" class="block text-sm font-medium text-gray-700 mb-1">Waktu</label>
+                                <input type="text" id="waktuKegiatan" placeholder="Contoh: 07.00 – 17.00 Wita" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="ruangan" class="block text-sm font-medium text-gray-700 mb-1">Ruangan yang Dipinjam</label>
+                            <select id="ruangan" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="Lab Pemrograman">Lab Pemrograman</option>
+                                <option value="Lab Arsitektur">Lab Arsitektur</option>
+                                <option value="Lab Multimedia">Lab Multimedia</option>
+                                <option value="Ruang 3C">Ruang 3C</option>
+                                <option value="Ruang 3B">Ruang 3B</option>
+                                <option value="Ruang 4A">Ruang 4A</option>
+                                <option value="Ruang 4B">Ruang 4B</option>
+                                <option value="Ruang 2C (Djuanda)">Ruang 2C (Djuanda)</option>
+                                <option value="Lab Elektro (Djuanda)">Lab Elektro (Djuanda)</option>
+                            </select>
+                            <p id="booking-notification" class="text-red-600 text-sm mt-1" style="display: none;">
+                                <strong>Perhatian:</strong> Ruangan ini sudah di-booking pada tanggal tersebut.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Daftar Alat -->
+                    <div id="daftar-alat-container" class="space-y-4 border-t pt-6">
+                        <h3 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Daftar Alat</h3>
+                        <div id="alat-list" class="space-y-3">
+                            <!-- Item alat akan ditambahkan di sini -->
+                        </div>
+                        <button id="add-alat-btn" type="button" class="mt-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">+ Tambah Alat</button>
+                    </div>
+                </div>
+
+                <!-- Form khusus Reservasi Ruangan -->
+                <div id="form-ruangan" class="form-section">
+                    <!-- Data Surat -->
+                    <div class="space-y-4 border-b pb-6">
+                        <h3 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Data Surat</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="kotaSuratReservasi" class="block text-sm font-medium text-gray-700 mb   -1">Kota Surat</label>
+                                <input type="text" id="kotaSuratReservasi" value="Bontang" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="tanggalSuratReservasi" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Surat</label>
+                                <input type="date" id="tanggalSuratReservasi" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="nomorSuratReservasi" class="block text-sm font-medium text-gray-700 mb-1">Nomor Surat</label>
+                            <input type="text" id="nomorSuratReservasi" placeholder="Contoh: 001/Int/PIK-M/VI/2024" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label for="penerimaJabatanReservasi" class="block text-sm font-medium text-gray-700 mb-1">Jabatan Penerima</label>
+                            <input type="text" id="penerimaJabatanReservasi" value="Ketua STITEK Bontang" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                         <div>
+                            <label for="penerimaNamaReservasi" class="block text-sm font-medium text-gray-700 mb-1">Nama Penerima</label>
+                            <input type="text" id="penerimaNamaReservasi" value="Bapak Hardianto, S.T., M. Eng" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                    </div>
+
+                    <!-- Data Peminjam -->
+                    <div class="space-y-4 border-b pb-6">
+                        <h3 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Data Peminjam</h3>
+                        <div>
+                            <label for="statusPeminjamReservasi" class="block text-sm font-medium text-gray-700 mb-1">Status Peminjam</label>
+                            <select id="statusPeminjamReservasi" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="ormawa" selected>Ormawa / Himpunan</option>
+                                <option value="mahasiswa">Mahasiswa</option>
+                                <option value="dosen">Dosen</option>
+                                <option value="staff">Staff</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Fields for Ormawa Reservasi -->
+                    <div id="peminjam-ormawa-fields-reservasi" class="peminjam-fields active space-y-6">
+                        <div class="space-y-4 border-b pb-6">
+                            <h3 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Data Kegiatan</h3>
+                            <div>
+                                <label for="tujuanAcaraReservasi" class="block text-sm font-medium text-gray-700 mb-1">Tujuan / Dalam Rangka Acara</label>
+                                <input type="text" id="tujuanAcaraReservasi" value="Pelaksanaan Program Kerja" placeholder="Contoh: Pelaksanaan Program Kerja" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="namaOrganisasiReservasi" class="block text-sm font-medium text-gray-700 mb-1">Nama Organisasi</label>
+                                <input type="text" id="namaOrganisasiReservasi" placeholder="Contoh: Pusat Informasi dan Konseling Mahasiswa STITEK Bontang" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="namaKegiatanReservasi" class="block text-sm font-medium text-gray-700 mb-1">Nama Kegiatan</label>
+                                <input type="text" id="namaKegiatanReservasi" placeholder="Contoh: Pelatihan Public Speaking" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <h3 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Penanggung Jawab</h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="ketuaPanitiaNamaReservasi" class="block text-sm font-medium text-gray-700 mb-1">Nama Ketua Panitia</label>
+                                    <input type="text" id="ketuaPanitiaNamaReservasi" placeholder="Nama Lengkap" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                 <div>
+                                    <label for="ketuaPanitiaNimReservasi" class="block text-sm font-medium text-gray-700 mb-1">NIM Ketua</label>
+                                    <input type="text" id="ketuaPanitiaNimReservasi" placeholder="NIM" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="sekretarisNamaReservasi" class="block text-sm font-medium text-gray-700 mb-1">Nama Sekretaris</label>
+                                    <input type="text" id="sekretarisNamaReservasi" placeholder="Nama Lengkap" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                 <div>
+                                    <label for="sekretarisNimReservasi" class="block text-sm font-medium text-gray-700 mb-1">NIM Sekretaris</label>
+                                    <input type="text" id="sekretarisNimReservasi" placeholder="NIM" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fields for Mahasiswa Reservasi -->
+                    <div id="peminjam-mahasiswa-fields-reservasi" class="peminjam-fields space-y-4">
+                         <h3 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Detail Peminjam & Keperluan</h3>
+                        <div>
+                            <label for="mahasiswaNamaReservasi" class="block text-sm font-medium text-gray-700 mb-1">Nama Mahasiswa</label>
+                            <input type="text" id="mahasiswaNamaReservasi" placeholder="Nama Lengkap" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label for="mahasiswaNimReservasi" class="block text-sm font-medium text-gray-700 mb-1">NIM</label>
+                            <input type="text" id="mahasiswaNimReservasi" placeholder="NIM" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label for="mahasiswaKeperluanReservasi" class="block text-sm font-medium text-gray-700 mb-1">Keperluan</label>
+                            <textarea id="mahasiswaKeperluanReservasi" rows="3" placeholder="Contoh: Pengerjaan tugas akhir" class="w-full p-2 border border-gray-300 rounded-md shadow-sm"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Fields for Dosen/Staff Reservasi -->
+                    <div id="peminjam-dosen-staff-fields-reservasi" class="peminjam-fields space-y-4">
+                         <h3 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Detail Peminjam & Keperluan</h3>
+                         <div>
+                            <label for="dosenStaffNamaReservasi" class="block text-sm font-medium text-gray-700 mb-1">Nama Dosen / Staff</label>
+                            <input type="text" id="dosenStaffNamaReservasi" placeholder="Nama Lengkap" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label for="dosenStaffNikReservasi" class="block text-sm font-medium text-gray-700 mb-1">NIP / NIK</label>
+                            <input type="text" id="dosenStaffNikReservasi" placeholder="NIP / NIK" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        </div>
+                         <div>
+                            <label for="dosenStaffKeperluanReservasi" class="block text-sm font-medium text-gray-700 mb-1">Keperluan</label>
+                            <textarea id="dosenStaffKeperluanReservasi" rows="3" placeholder="Contoh: Kegiatan belajar mengajar" class="w-full p-2 border border-gray-300 rounded-md shadow-sm"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Detail Waktu & Tempat untuk Reservasi -->
+                    <div class="space-y-4 border-t pt-6">
+                        <h3 class="text-lg font-semibold border-l-4 border-indigo-500 pl-3">Waktu & Tempat Pelaksanaan</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="tanggalKegiatanReservasi" class="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
+                                <input type="date" id="tanggalKegiatanReservasi" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="waktuKegiatanReservasi" class="block text-sm font-medium text-gray-700 mb-1">Waktu</label>
+                                <input type="text" id="waktuKegiatanReservasi" placeholder="Contoh: 07.00 – 17.00 Wita" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="ruanganReservasi" class="block text-sm font-medium text-gray-700 mb-1">Ruangan yang Direservasi</label>
+                            <select id="ruanganReservasi" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="Lab Pemrograman">Lab Pemrograman</option>
+                                <option value="Lab Arsitektur">Lab Arsitektur</option>
+                                <option value="Lab Multimedia">Lab Multimedia</option>
+                                <option value="Ruang 3C">Ruang 3C</option>
+                                <option value="Ruang 3B">Ruang 3B</option>
+                                <option value="Ruang 4A">Ruang 4A</option>
+                                <option value="Ruang 4B">Ruang 4B</option>
+                                <option value="Ruang 2C (Djuanda)">Ruang 2C (Djuanda)</option>
+                                <option value="Lab Elektro (Djuanda)">Lab Elektro (Djuanda)</option>
+                            </select>
+                            <p id="booking-notification-reservasi" class="text-red-600 text-sm mt-1" style="display: none;">
+                                <strong>Perhatian:</strong> Ruangan ini sudah di-booking pada tanggal tersebut.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                 <div class="mt-8">
+                    <button id="print-btn" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-transform transform hover:scale-105">
+                        Cetak Surat
+                    </button>
+                </div>
+            </div>
+
+            <!-- Kolom Preview Surat -->
+            <div class="bg-white p-8 rounded-xl shadow-lg h-fit">
+                <div id="preview-container" class="preview-document text-black">
+                    <div class="flex justify-between items-start">
+                        <span><span id="preview-kotaSurat">Bontang</span>, <span id="preview-tanggalSurat">...</span></span>
+                    </div>
+                    
+                    <div class="mt-2">
+                        <p>No&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <span id="preview-nomorSurat">...</span></p>
+                        <p>Lampiran&nbsp;: <span id="preview-lampiran">-</span></p>
+                        <p>Hal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <span class="font-bold" id="preview-hal">Permohonan Peminjaman Kelas dan Alat</span></p>
+                    </div>
+
+                    <div class="mt-3">
+                        <p>Yth. <span id="preview-penerimaJabatan">Ketua STITEK Bontang</span></p>
+                        <p><span id="preview-penerimaNama">Bapak Hardianto, S.T., M. Eng</span></p>
+                        <p>Di-</p>
+                        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Bontang</p>
+                    </div>
+
+                    <p class="mt-3">Dengan hormat,</p>
+                    <p class="mt-2 text-justify" id="preview-body">
+                        <!-- Konten dinamis dari JS -->
+                    </p>
+
+                    <table class="my-2 ml-6">
+                        <tbody>
+                            <tr>
+                                <td class="pr-4">Hari / Tanggal</td>
+                                <td class="px-2">:</td>
+                                <td><span id="preview-hariTanggalKegiatan">...</span></td>
+                            </tr>
+                            <tr>
+                                <td class="pr-4">Waktu</td>
+                                <td class="px-2">:</td>
+                                <td><span id="preview-waktuKegiatan">...</span></td>
+                            </tr>
+                            <tr>
+                                <td class="pr-4">Tempat</td>
+                                <td class="px-2">:</td>
+                                <td><span id="preview-ruangan">...</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div id="preview-alat-section">
+                        <p>Adapun pengajuan peminjaman peralatan kampus, diantaranya:</p>
+                        <div id="preview-daftarAlat" class="ml-6 mt-1">
+                           <!-- Daftar alat akan muncul di sini -->
+                        </div>
+                    </div>
+                    
+                    <p class="mt-2">Demikian permohonan ini kami sampaikan. Atas perhatian dan kebijaksanaan Bapak, kami ucapkan terima kasih.</p>
+
+                    <div id="preview-signature-section" class="mt-6" style="page-break-inside: avoid;">
+                        <!-- Signature block will be dynamically generated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Jadwal booking simulasi
+            const bookingSchedule = {
+                // Format: 'YYYY-MM-DD': ['Nama Ruangan 1', 'Nama Ruangan 2']
+                '2025-10-10': ['Lab Multimedia', 'Ruang 4A'],
+                '2025-10-11': ['Ruang 4A'],
+                '2025-10-15': ['Lab Pemrograman']
+            };
+
+            const formAlat = document.getElementById('form-alat');
+            const formRuanganContainer = document.getElementById('form-ruangan');
+            
+            const formRuanganContent = formAlat.cloneNode(true);
+            formRuanganContent.id = 'form-ruangan-content';
+            const daftarAlatContainer = formRuanganContent.querySelector('#daftar-alat-container');
+            if (daftarAlatContainer) {
+                daftarAlatContainer.remove();
+            }
+            formRuanganContainer.appendChild(formRuanganContent);
+
+            const tabs = {
+                alat: document.getElementById('tab-alat'),
+                ruangan: document.getElementById('tab-ruangan')
+            };
+            const forms = {
+                alat: formAlat,
+                ruangan: formRuanganContainer
+            };
+
+            let currentForm = 'alat';
+
+            function switchForm(formType) {
+                currentForm = formType;
+                Object.keys(tabs).forEach(key => {
+                    tabs[key].classList.toggle('active', key === formType);
+                    forms[key].classList.toggle('active', key === formType);
+                });
+                updatePreview();
+            }
+
+            tabs.alat.addEventListener('click', () => switchForm('alat'));
+            tabs.ruangan.addEventListener('click', () => switchForm('ruangan'));
+            
+            document.getElementById('print-btn').addEventListener('click', () => window.print());
+
+            function checkBookingStatus(formElement) {
+                const date = formElement.querySelector('#tanggalKegiatan').value;
+                const room = formElement.querySelector('#ruangan').value;
+                const notification = formElement.querySelector('#booking-notification');
+
+                if (bookingSchedule[date] && bookingSchedule[date].includes(room)) {
+                    notification.style.display = 'block';
+                } else {
+                    notification.style.display = 'none';
+                }
+            }
+
+            function setupFormEventListeners(formElement) {
+                const statusDropdown = formElement.querySelector('#statusPeminjam');
+                statusDropdown.addEventListener('change', () => {
+                    const status = statusDropdown.value;
+                    formElement.querySelectorAll('.peminjam-fields').forEach(el => {
+                        el.classList.remove('active');
+                    });
+
+                    if (status === 'ormawa') {
+                        formElement.querySelector('#peminjam-ormawa-fields').classList.add('active');
+                    } else if (status === 'mahasiswa') {
+                        formElement.querySelector('#peminjam-mahasiswa-fields').classList.add('active');
+                    } else if (status === 'dosen' || status === 'staff') {
+                        formElement.querySelector('#peminjam-dosen-staff-fields').classList.add('active');
+                    }
+                    updatePreview();
+                });
+
+                const addAlatBtn = formElement.querySelector('#add-alat-btn');
+                if (addAlatBtn) {
+                    addAlatBtn.addEventListener('click', () => addAlatItem(formElement));
+                }
+
+                formElement.querySelectorAll('input, textarea, select').forEach(input => {
+                    input.addEventListener('input', updatePreview);
+                });
+
+                // Listener untuk cek booking
+                formElement.querySelector('#tanggalKegiatan').addEventListener('change', () => checkBookingStatus(formElement));
+                formElement.querySelector('#ruangan').addEventListener('change', () => checkBookingStatus(formElement));
+            }
+
+            function addAlatItem(formElement, nama = '', jumlah = '', unit = 'unit') {
+                const list = formElement.querySelector('#alat-list');
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'grid grid-cols-12 gap-2 items-center alat-item';
+                itemDiv.innerHTML = `
+                    <div class="col-span-5"><input type="text" placeholder="Nama Alat" value="${nama}" class="w-full p-2 border border-gray-300 rounded-md text-sm nama-alat"></div>
+                    <div class="col-span-3"><input type="number" placeholder="Jml" value="${jumlah}" class="w-full p-2 border border-gray-300 rounded-md text-sm jumlah-alat"></div>
+                    <div class="col-span-3"><input type="text" placeholder="Unit" value="${unit}" class="w-full p-2 border border-gray-300 rounded-md text-sm unit-alat"></div>
+                    <div class="col-span-1 text-right"><button type="button" class="text-red-500 hover:text-red-700 remove-alat-btn">&times;</button></div>`;
+                list.appendChild(itemDiv);
+                itemDiv.querySelector('.remove-alat-btn').addEventListener('click', () => {
+                    itemDiv.remove();
+                    updatePreview();
+                });
+                itemDiv.querySelectorAll('input').forEach(input => input.addEventListener('input', updatePreview));
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+            document.querySelectorAll('#tanggalSurat, #tanggalKegiatan').forEach(el => el.value = today);
+            
+            setupFormEventListeners(formAlat);
+            setupFormEventListeners(formRuanganContent);
+            
+            function updatePreview() {
+                const activeForm = document.querySelector('.form-section.active');
+                const getValue = (id) => {
+                    const element = activeForm.querySelector(`#${id}`);
+                    return element ? element.value : document.getElementById(id).value;
+                }
+                const status = getValue('statusPeminjam');
+                
+                const tanggalSuratInput = getValue('tanggalSurat');
+                const formattedDate = tanggalSuratInput 
+                    ? new Date(tanggalSuratInput).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+                    : '...';
+                
+                const tanggalKegiatanInput = getValue('tanggalKegiatan');
+                const formattedEventDate = tanggalKegiatanInput
+                    ? new Date(tanggalKegiatanInput).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                    : '...';
+
+                document.getElementById('preview-kotaSurat').innerText = getValue('kotaSurat') || '...';
+                document.getElementById('preview-tanggalSurat').innerText = formattedDate;
+                document.getElementById('preview-nomorSurat').innerText = getValue('nomorSurat') || '...';
+                document.getElementById('preview-penerimaJabatan').innerText = getValue('penerimaJabatan') || '...';
+                document.getElementById('preview-penerimaNama').innerText = getValue('penerimaNama') || '...';
+                document.getElementById('preview-hariTanggalKegiatan').innerText = formattedEventDate;
+                document.getElementById('preview-waktuKegiatan').innerText = getValue('waktuKegiatan') || '...';
+                document.getElementById('preview-ruangan').innerText = getValue('ruangan') || '...';
+
+                const previewAlatSection = document.getElementById('preview-alat-section');
+                const previewDaftarAlat = document.getElementById('preview-daftarAlat');
+                const previewBody = document.getElementById('preview-body');
+                const signatureSection = document.getElementById('preview-signature-section');
+                
+                let bodyText = '';
+                const ruangan = getValue('ruangan') || '...';
+                const alatItems = activeForm.querySelectorAll('.alat-item');
+                const alatText = (currentForm === 'alat' && alatItems.length > 0) ? ' dan peralatan' : '';
+
+                if (status === 'ormawa') {
+                    const tujuanAcara = getValue('tujuanAcara') || '...';
+                    const namaOrganisasi = getValue('namaOrganisasi') || '...';
+                    const namaKegiatan = getValue('namaKegiatan') || '...';
+                    bodyText = `Dalam rangka <span class="font-semibold">${tujuanAcara}</span>, <span class="font-semibold">${namaOrganisasi}</span> akan menyelenggarakan kegiatan yakni <span class="font-semibold">${namaKegiatan}</span>. Maka kami selaku panitia bermaksud meminjam <span class="font-semibold">${ruangan}</span>${alatText} demi menunjang kelancaran kegiatan tersebut pada:`;
+                    signatureSection.innerHTML = `
+                        <p>Panitia Pelaksana</p>
+                        <p>${getValue('namaKegiatan') || '...'}</p>
+                        <div class="flex justify-between mt-16 text-center">
+                             <div>
+                                <p>Sekretaris</p><div class="h-20"></div>
+                                <p class="font-bold underline">${getValue('sekretarisNama') || '...'}</p>
+                                <p>NIM. ${getValue('sekretarisNim') || '...'}</p>
+                            </div>
+                            <div>
+                                <p>Ketua Panitia</p><div class="h-20"></div>
+                                <p class="font-bold underline">${getValue('ketuaPanitiaNama') || '...'}</p>
+                                <p>NIM. ${getValue('ketuaPanitiaNim') || '...'}</p>
+                            </div>
+                        </div>`;
+                } else { // Mahasiswa, Dosen, Staff
+                    let nama, id, keperluan, idLabel, peminjamStatus;
+                    if (status === 'mahasiswa') {
+                        nama = getValue('mahasiswaNama') || '...';
+                        id = getValue('mahasiswaNim') || '...';
+                        keperluan = getValue('mahasiswaKeperluan') || '...';
+                        idLabel = 'NIM';
+                        peminjamStatus = 'mahasiswa';
+                    } else {
+                        nama = getValue('dosenStaffNama') || '...';
+                        id = getValue('dosenStaffNik') || '...';
+                        keperluan = getValue('dosenStaffKeperluan') || '...';
+                        idLabel = status === 'dosen' ? 'NIP' : 'NIK';
+                        peminjamStatus = status;
+                    }
+                    bodyText = `Sehubungan dengan keperluan <span class="font-semibold">${keperluan}</span>, dengan ini saya selaku ${peminjamStatus}:<br>
+                        <table class="my-2 ml-4"><tbody>
+                            <tr><td class='pr-4'>Nama</td><td>: ${nama}</td></tr>
+                            <tr><td class='pr-4'>${idLabel}</td><td>: ${id}</td></tr>
+                        </tbody></table>
+                        Bermaksud untuk mengajukan peminjaman <span class="font-semibold">${ruangan}</span>${alatText} yang akan digunakan pada:`;
+                    signatureSection.innerHTML = `
+                        <div class="flex justify-end mt-16 text-center">
+                             <div>
+                                <p>Hormat saya,</p>
+                                <p>Peminjam</p>
+                                <div class="h-20"></div>
+                                <p class="font-bold underline">${nama}</p>
+                                <p>${idLabel}. ${id}</p>
+                            </div>
+                        </div>`;
+                }
+                previewBody.innerHTML = bodyText;
+
+                if (currentForm === 'alat') {
+                    document.getElementById('preview-hal').innerText = 'Permohonan Peminjaman';
+                    document.getElementById('preview-lampiran').innerText = alatItems.length > 0 ? '1 hal' : '-';
+                    previewAlatSection.style.display = 'block';
+
+                    previewDaftarAlat.innerHTML = '';
+                    if (alatItems.length > 0) {
+                        const table = document.createElement('table');
+                        const tbody = document.createElement('tbody');
+                        table.appendChild(tbody);
+                        alatItems.forEach(item => {
+                            const nama = item.querySelector('.nama-alat').value;
+                            const jumlah = item.querySelector('.jumlah-alat').value;
+                            const unit = item.querySelector('.unit-alat').value;
+                            if (nama && jumlah && unit) {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `<td class="pr-8" style="width: 200px;">- ${nama}</td><td class="pr-2">sebanyak</td><td>: ${jumlah} ${unit}</td>`;
+                                tbody.appendChild(row);
+                            }
+                        });
+                        previewDaftarAlat.appendChild(table);
+                    } else {
+                        previewDaftarAlat.innerHTML = '<p class="text-gray-400 italic">- Tidak ada alat yang diajukan -</p>';
+                    }
+                } else { // form 'ruangan'
+                    document.getElementById('preview-hal').innerText = 'Permohonan Peminjaman Ruangan';
+                    document.getElementById('preview-lampiran').innerText = '-';
+                    previewAlatSection.style.display = 'none';
+                }
+            }
+            
+            // Initial setup
+            switchForm('alat');
+            addAlatItem(formAlat, 'Proyektor', '1', 'unit');
+            addAlatItem(formAlat, 'Sound System', '1', 'set');
+            addAlatItem(formAlat, 'Mic', '2', 'unit');
+            updatePreview();
+            checkBookingStatus(formAlat);
+        });
+    </script>
+</body>
+</html>
+
